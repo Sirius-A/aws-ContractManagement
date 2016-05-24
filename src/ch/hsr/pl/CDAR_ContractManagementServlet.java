@@ -183,7 +183,7 @@ public class CDAR_ContractManagementServlet extends HttpServlet {
 		} catch (Exception e) {
 			PrintWriter out =res.getWriter();
 			out.println("<script type=\"text/javascript\">");  
-			out.println("alert('Ungültige Referenznummer');");  
+			out.println("alert('UngÃ¼ltige Referenznummer');");
 			out.println("</script>");
 			}		
 	}

@@ -9,6 +9,3 @@ global:
   default_region: eu-central-1
   profile: eb-cli
   sc: git
-
-deploy:
-  artifact: path/to/buildartifact.zip

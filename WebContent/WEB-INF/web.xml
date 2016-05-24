@@ -7,7 +7,7 @@
   </servlet>
   <servlet-mapping>
     <servlet-name>ContractManagementServlet</servlet-name>
-    <url-pattern>/ContractManagementServlet</url-pattern>
+    <url-pattern>/</url-pattern>
   </servlet-mapping>
   <session-config>
     <session-timeout>30</session-timeout>
