@@ -1,0 +1,14 @@
+branch-defaults:
+  master:
+    environment: ContractManagement-Mon
+    group_suffix: null
+global:
+  application_name: ContractManagement_MongoDB
+  default_ec2_keyname: null
+  default_platform: Java 8
+  default_region: eu-central-1
+  profile: eb-cli
+  sc: git
+
+deploy:
+  artifact: path/to/buildartifact.zip
