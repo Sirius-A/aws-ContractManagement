@@ -30,6 +30,8 @@
         <configuration>
           <source>1.7</source>
           <target>1.7</target>
+          <!--<encoding>Cp1252</encoding>-->
+          <encoding>UTF-8</encoding>
         </configuration>
       </plugin>
       <plugin>
@@ -49,4 +51,5 @@
   		<version>2.7.2</version>
   	</dependency>
   </dependencies>
+
 </project>
