@@ -6,7 +6,11 @@ import java.util.ArrayList;
 import java.util.Properties;
 
 import com.mongodb.*;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
 import org.bson.BSONObject;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 
 import ch.hsr.bll.CDAR_Contract;
@@ -22,8 +26,10 @@ public class CDAR_DatabaseMongoDB {
 	private static final String DESCRIPTION = "description";
 	private static final String CONTRACT = "contract";
 	private static final String CUSTOMER = "customer";
-	
-	private DB db;
+	private static final String DATABASE = "ccman";
+
+	private MongoDatabase db;
+	private MongoClient mongoClient;
 	private MongoClientURI mongoURI;
 
 	public CDAR_DatabaseMongoDB() {
@@ -36,20 +42,21 @@ public class CDAR_DatabaseMongoDB {
 			InputStream in = getClass().getClassLoader().getResourceAsStream("config.properties");
 			prop.load(in);
 			mongoURI = new MongoClientURI(prop.getProperty("mongoURI"));
-			// db = mongoURI.connectDB();
-			// db.authenticate(mongoURI.getUsername(), mongoURI.getPassword());
+			mongoClient = new MongoClient(mongoURI);
+			db = mongoClient.getDatabase(DATABASE);
+
 			clearCollection(CUSTOMER);
 			clearCollection(CONTRACT);
 		} catch (MongoException | IOException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void addEntry(CDAR_Contract contract) throws Exception {
 		try {
-			DBCollection collContracts = db.getCollection(CONTRACT);
-			BasicDBObject doc = new BasicDBObject(DESCRIPTION, contract.getDescription()).append(CUSTOMER, getCustomer(contract.getRefID().toString())).append(DATE, contract.getDate());
-			collContracts.insert(doc);
+			MongoCollection<Document> collContracts = db.getCollection(CONTRACT);
+			Document doc = new Document(DESCRIPTION, contract.getDescription()).append(CUSTOMER, getCustomer(contract.getRefID().toString())).append(DATE, contract.getDate());
+			collContracts.insertOne(doc);
 		} catch (Exception e) {
 			throw e;
 		}
@@ -57,9 +64,9 @@ public class CDAR_DatabaseMongoDB {
 
 	public void addEntry(CDAR_Customer customer) {
 		try {
-			DBCollection coll = db.getCollection(CUSTOMER);
-			BasicDBObject doc = new BasicDBObject(NAME, customer.getName()).append(LOCATION,customer.getLocation()).append(ZIP, customer.getZip());
-			coll.insert(doc);
+			MongoCollection<Document> coll = db.getCollection(CUSTOMER);
+			Document doc = new Document(NAME, customer.getName()).append(LOCATION,customer.getLocation()).append(ZIP, customer.getZip());
+			coll.insertOne(doc);
 			System.out.println(doc.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -70,13 +77,13 @@ public class CDAR_DatabaseMongoDB {
 		ArrayList<CDAR_Contract> list = new ArrayList<CDAR_Contract>();
 
 		try {
-			DBCollection coll = db.getCollection(CONTRACT);
-			DBCursor cursor = coll.find();
+			MongoCollection<Document> coll = db.getCollection(CONTRACT);
+			MongoCursor<Document> cursor = coll.find().iterator();
 			while (cursor.hasNext()) {
-				DBObject element = cursor.next();
+				Document element = cursor.next();
 				String idString = element.get(OID).toString();
 				String description = element.get(DESCRIPTION).toString();
-				DBObject customer = (DBObject) element.get(CUSTOMER);
+				Document customer = (Document) element.get(CUSTOMER);
 				String customerId = customer.get(OID).toString();
 				String date = element.get(DATE).toString();
 				list.add(new CDAR_Contract(idString, date, description, customerId));
@@ -91,11 +98,11 @@ public class CDAR_DatabaseMongoDB {
 		ArrayList<CDAR_Customer> list = new ArrayList<CDAR_Customer>();
 
 		try {
-			DBCollection coll = db.getCollection(CUSTOMER);
+			MongoCollection<Document> coll = db.getCollection(CUSTOMER);
 
-			DBCursor cursor = coll.find();
+			MongoCursor<Document> cursor = coll.find().iterator();
 			while (cursor.hasNext()) {
-				DBObject element = cursor.next();
+				Document element = cursor.next();
 				String idString = element.get(OID).toString();
 				String name = element.get(NAME).toString();
 				String location = element.get(LOCATION).toString();
@@ -108,18 +115,19 @@ public class CDAR_DatabaseMongoDB {
 		return list;
 	}
 
-	
+
 	public ArrayList<CDAR_CustomerContractJoin> getJoins() {
 		ArrayList<CDAR_CustomerContractJoin> list = new ArrayList<CDAR_CustomerContractJoin>();
 		try {
-			DBCollection collContracts = db.getCollection(CONTRACT);
-			collContracts.distinct(DESCRIPTION);
-			DBCursor cursorContracts = collContracts.find();
+			MongoCollection<Document> collContracts = db.getCollection(CONTRACT);
+			collContracts.distinct(DESCRIPTION, null);
+			// TODO fix this distinct operation
+			MongoCursor<Document> cursorContracts = collContracts.find().iterator();
 			while (cursorContracts.hasNext()) {
-				DBObject contract = cursorContracts.next();
+				Document contract = cursorContracts.next();
 				String contractDescription = contract.get(DESCRIPTION).toString();
 				String contractDate = contract.get(DATE).toString();
-				DBObject customer = (DBObject) contract.get(CUSTOMER);
+				Document customer = (Document) contract.get(CUSTOMER);
 				String customer_id = customer.get(OID).toString();
 				String customerName = customer.get(NAME).toString();
 				String customerLocation = customer.get(LOCATION).toString();
@@ -131,29 +139,29 @@ public class CDAR_DatabaseMongoDB {
 		}
 		return list;
 	}
-	
-	private DBObject getCustomer(String id) throws Exception {
-		DBCollection collCustomers = db.getCollection(CUSTOMER);
+
+	private Document getCustomer(String id) throws Exception {
+		MongoCollection<Document> collCustomers = db.getCollection(CUSTOMER);
 		ObjectId _id= new ObjectId(id);
 		BasicDBObject obj = new BasicDBObject();
 		obj.append(OID, _id);
 		BasicDBObject query = new BasicDBObject();
-		query.putAll((BSONObject)query);
-		DBObject customer = collCustomers.findOne(query);
+		query.putAll((BSONObject)obj);
+		Document customer = collCustomers.find(query).first();
 		if (customer == null) {
 			throw new Exception("No customer found");
 		}
-		return collCustomers.findOne(query);
+		return collCustomers.find(query).first();
 	}
-	
+
 	private void clearCollection(String name) {
 		try {
-			DBCollection coll = db.getCollection(name);
+			MongoCollection<Document> coll = db.getCollection(name);
 
-			DBCursor cursor = coll.find();
+			MongoCursor<Document> cursor = coll.find().iterator();
 			while (cursor.hasNext()) {
-				DBObject element = cursor.next();
-				coll.remove(element);
+				Document element = cursor.next();
+				coll.deleteOne(element);
 			}
 		} catch (MongoException e) {
 			e.printStackTrace();
