@@ -5,20 +5,13 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Properties;
 
+import com.mongodb.*;
 import org.bson.BSONObject;
 import org.bson.types.ObjectId;
 
 import ch.hsr.bll.CDAR_Contract;
 import ch.hsr.bll.CDAR_Customer;
 import ch.hsr.bll.CDAR_CustomerContractJoin;
-
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.MongoException;
-import com.mongodb.MongoURI;
 
 public class CDAR_DatabaseMongoDB {
 	private static final String ZIP = "zip";
@@ -31,7 +24,7 @@ public class CDAR_DatabaseMongoDB {
 	private static final String CUSTOMER = "customer";
 	
 	private DB db;
-	private MongoURI mongoURI;
+	private MongoClientURI mongoURI;
 
 	public CDAR_DatabaseMongoDB() {
 		init();
@@ -42,9 +35,9 @@ public class CDAR_DatabaseMongoDB {
 		try {
 			InputStream in = getClass().getClassLoader().getResourceAsStream("config.properties");
 			prop.load(in);
-			mongoURI = new MongoURI(prop.getProperty("mongoURI"));
-			db = mongoURI.connectDB();
-			db.authenticate(mongoURI.getUsername(), mongoURI.getPassword());
+			mongoURI = new MongoClientURI(prop.getProperty("mongoURI"));
+			// db = mongoURI.connectDB();
+			// db.authenticate(mongoURI.getUsername(), mongoURI.getPassword());
 			clearCollection(CUSTOMER);
 			clearCollection(CONTRACT);
 		} catch (MongoException | IOException e) {
